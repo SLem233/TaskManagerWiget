@@ -1,0 +1,20 @@
+.gradle/
+build/
+**/build/
+local.properties
+.sdk/
+.tooling/
+.tmp/
+.swf/
+*.apk
+*.aab
+.idea/
+references/*.jpg
+
+__pycache__/
+*.pyc
+.kotlin/
+
+# Screenshots contain real task titles; keep originals only in the local workspace.
+artifacts/widget-realme-large-2026-10-01.jpg
+artifacts/widget-realme-compact-2026-10-01.jpg
