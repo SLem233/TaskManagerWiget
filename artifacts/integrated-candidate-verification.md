@@ -9,11 +9,11 @@
 ## Автоматические проверки текущего APK
 
 - `python -m unittest discover -s scripts -p 'test_*.py'`: 4 теста, 0 ошибок.
-- `gradlew.bat testDebugUnitTest createDebugUnitTestCoverageReport assembleDebug lintDebug`: 92 Android/JVM теста, 0 failures/errors/skipped; сборка успешна, lint: 0 errors, 22 warnings.
+- `gradlew.bat testDebugUnitTest createDebugUnitTestCoverageReport assembleDebug lintDebug`: 94 Android/JVM теста, 0 failures/errors/skipped; сборка успешна, lint: 0 errors, 22 warnings.
 - JaCoCo по всему приложению: 927/1141 строк = 81,2%; требование ≥80% выполнено. Отчёт: `app/build/reports/coverage/test/debug/index.html`.
 - Все 41 Kotlin-файл в `app/src` имеют не более 500 строк.
-- APK: versionCode 6, versionName `0.4.0-integrated-candidate`, minSdk 26, targetSdk 36; SHA-256 исходника и сохранённой копии совпал: `9E7B75ABA4A57304EE726E4D62CB5BA7C18698C322F3DECCEE25170807994867`.
-- `aapt dump permissions` не вывел Android-разрешений, включая INTERNET.
+- APK: versionCode 6, versionName `0.4.0-integrated-candidate`, minSdk 26, targetSdk 36; SHA-256 исходника и сохранённой копии совпал: `2FBF705BC0DE2863ACA5786F6038C27D65417215608C692E4390310AA55025D9`.
+- `aapt dump permissions` показал только нормальное разрешение `RECEIVE_BOOT_COMPLETED` для persisted job; `INTERNET` нет.
 - API 36 тесты на Windows используют тестовый `WindowsAtomicFileShadow` для замены существующего файла. Production `AtomicFile` и APK не меняются этим shadow.
 
 ## Проверка на Realme/Android 16
@@ -24,7 +24,7 @@
 
 Владелец предоставил два снимка: `widget-realme-large-2026-10-01.jpg` и `widget-realme-compact-2026-10-01.jpg` (хранятся только в локальном `artifacts/` из-за реальных названий задач). JPEG скопированы без обработки, SHA-256 копий совпал с исходниками. На большом снимке видны несколько групп дат и задач, на компактном — часть прокручиваемого списка. Снимки сделаны до индикации Refresh.
 
-Владелец принял текущий кандидат и разрешил коммит и push. Отдельного результата визуальной оценки цветов и таймера, а также аппаратных сценариев повторения и конфликта не получено. Самостоятельное периодическое срабатывание и чистая установка не подтверждены. Сценарий: [TESTING.md](../TESTING.md).
+Владелец принял текущий кандидат и разрешил коммит и push. Отдельного результата визуальной оценки цветов и таймера, а также аппаратных сценариев повторения и конфликта не получено. Чистая установка и сохранение SAF-доступа после reboot подтверждены; persisted job пережил reboot. Точный автономный 30-минутный интервал не измерялся. Сценарий: [TESTING.md](../TESTING.md).
 
 ## Дефект двух задач в одной заметке
 
@@ -55,3 +55,9 @@
 ## Git и первый коммит
 
 `subagent-workflow` 0.2.2 не поддерживает связь telemetry с первым коммитом без `HEAD`. Для сохранения защитного hook сначала создаётся пустой bootstrap-коммит через отдельный пустой Git index; основной staged index при этом не меняется. Следующий коммит с файлами связывается с точным `model_run` обычным `finish --commit`.
+
+## Чистая установка и persisted job после reboot
+
+По разрешению владельца пакет `ru.slem.taskwidget` удалён и установлен начисто из прежнего APK. Старых настроек не было; владелец заново выбрал Vault через SAF и добавил виджет, задачи появились. После force-stop/relaunch сохранённый URI остался, принудительный скан обновил индекс без ошибки. После reboot до исправления URI и индекс сохранились, но periodic job отсутствовал; ручной скан после разблокировки обновил индекс и вернул job. Подробная диагностика: [persisted-job-reboot-diagnosis.md](persisted-job-reboot-diagnosis.md).
+
+Новый APK с `setPersisted(true)` и нормальным `RECEIVE_BOOT_COMPLETED` установлен на Realme. Перед повторным reboot JobScheduler показал `PERSISTED`, после reboot **до открытия приложения** job `4102` остался в системном списке с этим флагом. Владелец после разблокировки сообщил, что на телефоне всё работает, и попросил завершить. При повторном ADB-подключении принудительный запуск persisted job после reboot обновил индекс с mtime `1790853547` до `1790854093`, `last_scan_error` пуст, job снова `waiting` с `PERSISTED`. Точный момент самостоятельного 30-минутного запуска не измерялся. Полный suite: 94 Android/JVM и 4 Python теста, покрытие 927/1141 строк (81,2%), lint без ошибок. APK SHA-256 `2FBF705BC0DE2863ACA5786F6038C27D65417215608C692E4390310AA55025D9`.

@@ -1,9 +1,13 @@
 package ru.slem.taskwidget
 
+import android.Manifest
 import android.app.Application
+import android.app.job.JobInfo
 import android.app.job.JobScheduler
 import android.appwidget.AppWidgetManager
 import android.content.Context
+import android.content.ComponentName
+import android.content.pm.PackageManager
 import android.content.Intent
 import android.os.Bundle
 import android.os.Looper
@@ -89,6 +93,23 @@ class AndroidWidgetTest {
             .setAction(TaskWidgetProvider.ACTION_REFRESH)
             .putExtra(TaskWidgetProvider.EXTRA_TOKEN, WidgetPreferences.token(context)))
         assertEquals(1, scheduler.allPendingJobs.size)
+    }
+
+    @Test fun periodicScanPersistsAcrossRebootAndReplacesOldSchedule() {
+        prepareIndex()
+        val scheduler = context.getSystemService(JobScheduler::class.java)
+        val old = JobInfo.Builder(4102, ComponentName(context, VaultScanJobService::class.java))
+            .setPeriodic(30L * 60L * 1000L).build()
+        assertEquals(JobScheduler.RESULT_SUCCESS, scheduler.schedule(old))
+        assertFalse(requireNotNull(scheduler.getPendingJob(4102)).isPersisted)
+
+        VaultScanJobService.ensurePeriodic(context)
+        val replacement = requireNotNull(scheduler.getPendingJob(4102))
+        assertTrue(replacement.isPeriodic)
+        assertTrue(replacement.isPersisted)
+        val permissions = context.packageManager.getPackageInfo(context.packageName,
+            PackageManager.GET_PERMISSIONS).requestedPermissions.orEmpty().toList()
+        assertTrue(permissions.contains(Manifest.permission.RECEIVE_BOOT_COMPLETED))
     }
 
     @Test fun refreshImmediatelyShowsProgressOnlyForAuthorizedClick() {

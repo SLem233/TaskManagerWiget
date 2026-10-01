@@ -98,10 +98,10 @@ class VaultScanJobService : JobService() {
         fun ensurePeriodic(context: Context) {
             if (WidgetPreferences.vaultUri(context) == null) return
             val scheduler = context.getSystemService(JobScheduler::class.java)
-            if (scheduler.allPendingJobs.any { it.id == PERIODIC }) return
+            if (scheduler.getPendingJob(PERIODIC)?.isPersisted == true) return
             scheduler.schedule(JobInfo.Builder(PERIODIC,
                 ComponentName(context, VaultScanJobService::class.java))
-                .setPeriodic(PERIOD_MS).build())
+                .setPeriodic(PERIOD_MS).setPersisted(true).build())
         }
     }
 }
