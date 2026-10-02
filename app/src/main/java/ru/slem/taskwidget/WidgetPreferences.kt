@@ -13,6 +13,8 @@ object WidgetPreferences {
     const val VAULT_URI = "vault_uri"
     const val VAULT_NAME = "vault_name"
     const val TASK_TAG = "task_tag"
+    const val ADD_FILE = "add_file"
+    const val DEFAULT_ADD_FILE = "sl_work/Tasks/Список задач.md"
     private const val TOKEN = "widget_action_token"
     private const val REFRESH_STATE = "widget_refresh_state"
     private const val REFRESH_STARTED = "widget_refresh_started"
@@ -36,6 +38,15 @@ object WidgetPreferences {
     fun tag(context: Context): String =
         context.getSharedPreferences(SETTINGS, Context.MODE_PRIVATE).getString(TASK_TAG, "#task") ?: "#task"
 
+    fun addFile(context: Context): String =
+        context.getSharedPreferences(SETTINGS, Context.MODE_PRIVATE)
+            .getString(ADD_FILE, DEFAULT_ADD_FILE) ?: DEFAULT_ADD_FILE
+
+    fun saveAddFile(context: Context, raw: String): Boolean {
+        val path = TaskDestination.normalize(raw, vaultName(context)) ?: return false
+        return context.getSharedPreferences(SETTINGS, Context.MODE_PRIVATE)
+            .edit().putString(ADD_FILE, path).commit()
+    }
     fun token(context: Context): String {
         val prefs = context.getSharedPreferences(SETTINGS, Context.MODE_PRIVATE)
         prefs.getString(TOKEN, null)?.let { return it }

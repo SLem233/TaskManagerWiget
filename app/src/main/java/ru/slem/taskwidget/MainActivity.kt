@@ -25,6 +25,7 @@ class MainActivity : Activity() {
     private lateinit var column: LinearLayout
     private lateinit var vaultLabel: TextView
     private lateinit var tagInput: EditText
+    private lateinit var addFileInput: EditText
     private lateinit var status: TextView
     private lateinit var journalPanel: LinearLayout
     private var exportBackupId: String? = null
@@ -58,6 +59,22 @@ class MainActivity : Activity() {
             setHintTextColor(Color.GRAY)
         }
         column.addView(tagInput)
+        column.addView(label("Файл для новых задач внутри Vault", 15f))
+        addFileInput = EditText(this).apply {
+            setSingleLine(true)
+            setText(WidgetPreferences.addFile(this@MainActivity))
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.GRAY)
+        }
+        column.addView(addFileInput)
+        column.addView(Button(this).apply {
+            text = "Сохранить файл новых задач"
+            setOnClickListener {
+                status.text = if (WidgetPreferences.saveAddFile(this@MainActivity,
+                        addFileInput.text.toString())) "Файл новых задач сохранён"
+                    else "Укажите Markdown-файл внутри Vault без .."
+            }
+        })
         column.addView(Button(this).apply {
             text = "Сканировать Vault"
             setOnClickListener { scanVault() }
@@ -98,8 +115,26 @@ class MainActivity : Activity() {
             addView(column, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         })
         showJournal()
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1003)
+        }
     }
 
+    override fun onResume() {
+        super.onResume()
+        DeadlineNotifications.update(this, VaultRepository.indexedTasks(this))
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1003) {
+            DeadlineNotifications.update(this, VaultRepository.indexedTasks(this))
+        }
+    }
     private fun label(value: String, size: Float) = TextView(this).apply {
         text = value
         textSize = size

@@ -11,8 +11,8 @@ android {
         applicationId = "ru.slem.taskwidget"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
-        versionName = "0.4.0-integrated-candidate"
+        versionCode = 8
+        versionName = "0.5.1-candidate"
     }
     buildTypes { getByName("debug") { enableUnitTestCoverage = true } }
     testOptions {

@@ -71,6 +71,41 @@ class SafIntegrationTest {
         return file
     }
 
+    @Test fun addsTaskToConfiguredSafFileAndUpdatesIndex() {
+        val context = RuntimeEnvironment.getApplication()
+        val file = syntheticDocument(context, "# Задачи\n")
+        assertTrue(WidgetPreferences.saveAddFile(context, "Note.md"))
+        VaultRepository.scan(context)
+        assertTrue(VaultRepository.add(context, "Новая задача") is WriteOutcome.Success)
+        assertEquals("# Задачи\n- [ ] Новая задача #task\n", file.readText())
+        assertEquals("Новая задача", VaultRepository.indexedTasks(context).single().task.description)
+    }
+
+    @Test fun structuredTaskWithTagsAndDatesIsSavedThroughSaf() {
+        val context = RuntimeEnvironment.getApplication()
+        val file = syntheticDocument(context, "# Задачи\n")
+        assertTrue(WidgetPreferences.saveAddFile(context, "Note.md"))
+        val draft = TaskDraft("Подготовить письмо", "#project/demo #urgent",
+            start = LocalDate.of(2026, 10, 2),
+            scheduled = LocalDate.of(2026, 10, 3),
+            due = LocalDate.of(2026, 10, 4))
+        assertTrue(VaultRepository.add(context, draft) is WriteOutcome.Success)
+        assertEquals("# Задачи\n- [ ] Подготовить письмо #task #project/demo #urgent " +
+            "🛫 2026-10-02 ⏳ 2026-10-03 📅 2026-10-04\n", file.readText())
+    }
+    @Test fun backgroundScanRemovesExpiredDoneLineButKeepsOtherMarkdown() {
+        val context = RuntimeEnvironment.getApplication()
+        val active = "- [ ] Активная #task 📅 2026-10-03"
+        val file = syntheticDocument(context,
+            "# Задачи\n- [x] Старая #task ✅ 2020-01-01\n$active\n")
+        val result = VaultRepository.scan(context)
+        assertEquals("# Задачи\n$active\n", file.readText())
+        assertEquals(1, result.tasks.size)
+        assertEquals("Активная", result.tasks.single().task.description)
+        LocalTaskWriteJournal(context, "content://synthetic.vault/tree/root").use {
+            assertTrue(it.recent().isEmpty())
+        }
+    }
     @Test fun recurringTaskCreatesNextOccurrenceAndUndoRemovesItThroughSaf() {
         val context = RuntimeEnvironment.getApplication()
         val line = "- [ ] Еженедельно #task 🔁 every week 📅 2026-10-01"

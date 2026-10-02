@@ -17,10 +17,12 @@ class TaskWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         ids.forEach { render(context, manager, it) }
         VaultScanJobService.ensurePeriodic(context)
+        DeadlineNotifications.update(context, VaultRepository.indexedTasks(context))
     }
 
     override fun onDisabled(context: Context) {
         VaultScanJobService.cancelPeriodic(context)
+        DeadlineNotifications.clear(context)
     }
 
     override fun onAppWidgetOptionsChanged(
@@ -103,6 +105,13 @@ class TaskWidgetProvider : AppWidgetProvider() {
                 WidgetRefreshState.SUCCESS -> "Обновлено"
                 WidgetRefreshState.FAILURE -> "Ошибка обновления"
             })
+            setViewVisibility(R.id.widget_status,
+                if (WidgetPreferences.refreshState(context) == WidgetRefreshState.IDLE)
+                    android.view.View.GONE else android.view.View.VISIBLE)
+            setOnClickPendingIntent(R.id.widget_add, PendingIntent.getActivity(
+                context, id + 10_000, Intent(context, AddTaskActivity::class.java),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            ))
             setRemoteAdapter(R.id.task_list, adapter)
             setPendingIntentTemplate(R.id.task_list, PendingIntent.getBroadcast(
                 context, id, Intent(context, TaskWidgetProvider::class.java).apply {
@@ -133,6 +142,7 @@ class TaskWidgetProvider : AppWidgetProvider() {
         const val EXTRA_TOKEN = "widget_token"
 
         fun refreshAll(context: Context) {
+            DeadlineNotifications.update(context, VaultRepository.indexedTasks(context))
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(ComponentName(context, TaskWidgetProvider::class.java))
             ids.forEach { TaskWidgetProvider().render(context, manager, it) }

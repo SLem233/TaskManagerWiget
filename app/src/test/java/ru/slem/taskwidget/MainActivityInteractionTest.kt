@@ -55,7 +55,7 @@ class MainActivityInteractionTest {
         assertTrue(texts(activity).any { it.contains("Сначала выберите") })
         activity.getSharedPreferences(WidgetPreferences.SETTINGS, 0).edit()
             .putString(WidgetPreferences.VAULT_URI, "content://synthetic.vault/tree/root").commit()
-        views.filterIsInstance<EditText>().single().setText("bad tag")
+        views.filterIsInstance<EditText>().single { it.text.toString().startsWith("#") }.setText("bad tag")
         button(activity, "Сканировать Vault").performClick()
         assertTrue(texts(activity).any { it.contains("Укажите один тег") })
         button(activity, "Выбрать папку Vault").performClick()
@@ -64,6 +64,27 @@ class MainActivityInteractionTest {
         activity.finish()
     }
 
+    @Test fun taskFileSettingUsesVaultRelativePathAndRejectsTraversal() {
+        val context = RuntimeEnvironment.getApplication()
+        context.getSharedPreferences(WidgetPreferences.SETTINGS, 0).edit()
+            .putString(WidgetPreferences.VAULT_NAME, "DemoVault").commit()
+        val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+        val input = descendants(activity.window.decorView).filterIsInstance<EditText>()
+            .single { it.text.toString().contains("Список задач.md") }
+        input.setText("DemoVault\\sl_work\\Tasks\\Список задач.md")
+        button(activity, "Сохранить файл новых задач").performClick()
+        assertEquals("sl_work/Tasks/Список задач.md", WidgetPreferences.addFile(activity))
+        input.setText("../outside.md")
+        button(activity, "Сохранить файл новых задач").performClick()
+        assertEquals("sl_work/Tasks/Список задач.md", WidgetPreferences.addFile(activity))
+        activity.finish()
+    }
+    @Test fun settingsScreenRemainsSeparateFromTaskCreation() {
+        val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+        assertTrue(texts(activity).contains("Задачи · настройка"))
+        assertFalse(texts(activity).contains("Новая задача"))
+        activity.finish()
+    }
     @Test fun journalShowsRecoveryExportAndCanClearResolvedHistory() {
         val context = RuntimeEnvironment.getApplication()
         context.getSharedPreferences(WidgetPreferences.SETTINGS, 0).edit()

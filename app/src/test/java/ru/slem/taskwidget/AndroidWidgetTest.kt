@@ -95,6 +95,83 @@ class AndroidWidgetTest {
         assertEquals(1, scheduler.allPendingJobs.size)
     }
 
+    @Test fun headerTitleAndActionIconsShareVerticalCenter() {
+        val view = android.view.LayoutInflater.from(context).inflate(R.layout.widget_layout, null)
+        view.measure(
+            android.view.View.MeasureSpec.makeMeasureSpec(400, android.view.View.MeasureSpec.EXACTLY),
+            android.view.View.MeasureSpec.makeMeasureSpec(400, android.view.View.MeasureSpec.EXACTLY)
+        )
+        view.layout(0, 0, 400, 400)
+        fun center(id: Int): Int {
+            val item = view.findViewById<android.view.View>(id)
+            return item.top + item.height / 2
+        }
+        assertSame(view.findViewById<android.view.View>(R.id.widget_refresh).parent, view.findViewById<android.view.View>(R.id.widget_title).parent)
+        assertEquals(center(R.id.widget_refresh), center(R.id.widget_title))
+        assertEquals(center(R.id.widget_settings), center(R.id.widget_title))
+    }
+    @Test fun headerActionsUseEqualCenteredDrawablesInsteadOfFontGlyphs() {
+        val view = android.view.LayoutInflater.from(context).inflate(R.layout.widget_layout, null)
+        val actions = listOf(R.id.widget_add, R.id.widget_refresh, R.id.widget_settings)
+            .map { view.findViewById<android.widget.ImageView>(it) }
+        assertEquals(1, actions.map { it.parent }.distinct().size)
+        assertEquals(1, actions.map { it.layoutParams.height }.distinct().size)
+        assertEquals(1, actions.map { it.paddingTop to it.paddingBottom }.distinct().size)
+        assertTrue(actions.all { it.drawable != null })
+    }
+
+    @Test fun plusStartsDedicatedTaskScreen() {
+        prepareIndex()
+        val manager = AppWidgetManager.getInstance(context)
+        val id = shadowOf(manager).createWidget(TaskWidgetProvider::class.java, R.layout.widget_layout)
+        TaskWidgetProvider().onUpdate(context, manager, intArrayOf(id))
+        val widget = shadowOf(manager).getViewFor(id)
+        widget.findViewById<android.view.View>(R.id.widget_add).performClick()
+        assertEquals("ru.slem.taskwidget.AddTaskActivity",
+            shadowOf(context as Application).nextStartedActivity.component?.className)
+    }
+
+    @Test @Config(sdk = [28]) fun openingAppRefreshesDeadlineBellFromIndex() {
+        val task = requireNotNull(TaskParser.parseLine(
+            "- [ ] Просрочено #task 📅 2020-01-01", 1, "#task"))
+        val uri = "content://synthetic.vault/tree/root"
+        LocalTaskIndex(context).save(IndexSnapshot(uri, "#task",
+            mapOf("doc" to CachedFile("doc", "Note.md", 1, 10, listOf(task)))))
+        context.getSharedPreferences(WidgetPreferences.SETTINGS, 0).edit()
+            .putString(WidgetPreferences.VAULT_URI, uri)
+            .putString(WidgetPreferences.TASK_TAG, "#task").commit()
+        val manager = context.getSystemService(android.app.NotificationManager::class.java)
+        manager.cancelAll()
+        Robolectric.buildActivity(MainActivity::class.java).setup().get()
+        assertEquals(1, manager.activeNotifications.size)
+    }
+    @Test @Config(sdk = [28]) fun notificationBellUsesWidgetDueColorsAndClearsWhenResolved() {
+        val manager = context.getSystemService(android.app.NotificationManager::class.java)
+        val today = LocalDate.of(2026, 10, 2)
+        fun indexed(line: String) = IndexedTask("List.md", "doc", 1,
+            requireNotNull(TaskParser.parseLine(line, 1, "#task")))
+        DeadlineNotifications.update(context,
+            listOf(indexed("- [ ] Сегодня #task 📅 2026-10-02")), today)
+        assertEquals(1, manager.activeNotifications.size)
+        assertEquals(0xFFFF8040.toInt(), manager.activeNotifications.single().notification.color)
+        val todayIcon = manager.activeNotifications.single().notification.smallIcon.resId
+        DeadlineNotifications.update(context,
+            listOf(indexed("- [ ] Вчера #task 📅 2026-10-01")), today)
+        assertEquals(0xFFFF0000.toInt(), manager.activeNotifications.single().notification.color)
+        assertNotEquals(todayIcon, manager.activeNotifications.single().notification.smallIcon.resId)
+        DeadlineNotifications.update(context, emptyList(), today)
+        assertTrue(manager.activeNotifications.isEmpty())
+    }
+    @Test @Config(sdk = [28]) fun removingLastWidgetClearsDeadlineBell() {
+        val today = LocalDate.of(2026, 10, 2)
+        val task = IndexedTask("List.md", "doc", 1,
+            requireNotNull(TaskParser.parseLine("- [ ] Вчера #task 📅 2026-10-01", 1, "#task")))
+        val manager = context.getSystemService(android.app.NotificationManager::class.java)
+        DeadlineNotifications.update(context, listOf(task), today)
+        assertEquals(1, manager.activeNotifications.size)
+        TaskWidgetProvider().onDisabled(context)
+        assertTrue(manager.activeNotifications.isEmpty())
+    }
     @Test fun periodicScanPersistsAcrossRebootAndReplacesOldSchedule() {
         prepareIndex()
         val scheduler = context.getSystemService(JobScheduler::class.java)

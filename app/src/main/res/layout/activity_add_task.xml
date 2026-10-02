@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true" android:fitsSystemWindows="true"
+    android:background="#101010">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="20dp">
+        <TextView android:id="@+id/add_heading" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="Новая задача"
+            android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="24sp"
+            android:layout_marginBottom="8dp" />
+        <TextView android:id="@+id/add_target" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textColor="#B0B0B0"
+            android:textSize="13sp" android:layout_marginBottom="20dp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Название" android:textColor="#FFFFFF" android:textSize="16sp" />
+        <EditText android:id="@+id/add_description" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Что нужно сделать"
+            android:singleLine="true" android:inputType="textCapSentences"
+            android:textColor="#FFFFFF" android:textColorHint="#888888" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Теги через пробел" android:textColor="#FFFFFF" android:textSize="16sp"
+            android:layout_marginTop="18dp" />
+        <EditText android:id="@+id/add_tags" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="#task #project/example"
+            android:singleLine="true" android:inputType="text"
+            android:textColor="#FFFFFF" android:textColorHint="#888888" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Даты задачи" android:textColor="#FFFFFF" android:textSize="16sp"
+            android:layout_marginTop="18dp" android:layout_marginBottom="4dp" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button android:id="@+id/pick_start" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1" android:text="Старт: без даты" />
+            <Button android:id="@+id/clear_start" android:layout_width="52dp"
+                android:layout_height="wrap_content" android:text="×" android:contentDescription="Убрать дату старта" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button android:id="@+id/pick_scheduled" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1" android:text="Приступить: без даты" />
+            <Button android:id="@+id/clear_scheduled" android:layout_width="52dp"
+                android:layout_height="wrap_content" android:text="×" android:contentDescription="Убрать дату начала работы" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button android:id="@+id/pick_due" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1" android:text="Дедлайн: без даты" />
+            <Button android:id="@+id/clear_due" android:layout_width="52dp"
+                android:layout_height="wrap_content" android:text="×" android:contentDescription="Убрать дедлайн" />
+        </LinearLayout>
+        <TextView android:id="@+id/add_status" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textColor="#FF8040"
+            android:textSize="14sp" android:layout_marginTop="12dp" />
+        <Button android:id="@+id/save_task" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="Сохранить задачу"
+            android:layout_marginTop="12dp" />
+        <Button android:id="@+id/cancel_task" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="Отмена" />
+    </LinearLayout>
+</ScrollView>
